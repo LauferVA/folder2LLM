@@ -7,15 +7,13 @@ This script extracts text from a wide variety of file types—DOCX, PDF, Excel, 
 
 ## Features
 
-1. **Text Extraction** From Several File Types  
-   - Supports extraction of text from a variety of plain text files ( ".txt", ".md", ".py", ".json", ".csv", ".tsv", ".log", ".xml", ".yaml", ".yml", ".html", ".htm", ".css", ".js", ".jsx", ".ts", ".tsx", ".sh", ".cmd", ".ps1", ".swift", ".kt", ".go", ".rs", ".lua", ".pl", ".r", ".m", ".vb", ".cs", ".asm", ".dart", ".php", ".rb", ".sql" )
-2. **Text Conversion** From Many more File Types: 
+1. **Direct Text Extraction** From Several File Types  
+   - Supports extraction of text from a variety of plain text files: ".txt", ".md", ".py", ".json", ".csv", ".tsv", ".log", ".xml", ".yaml", ".yml", ".html", ".htm", ".css", ".js", ".jsx", ".ts", ".tsx", ".sh", ".cmd", ".ps1", ".swift", ".kt", ".go", ".rs", ".lua", ".pl", ".r", ".m", ".vb", ".cs", ".asm", ".dart", ".php", ".rb", ".sql" 
+2. **File Fmt Conversion Followed By Extraction** From Several Additional File Types: '.doc', '.docx', '.ipynb', '.odp', '.ods', '.odt', '.pdf',\ '.ppt', '.pptx', '.rtf', '.xls', '.xlsm', '.xlsx'
 2. **Sanitization**  
    - Removes odd or non-printable characters, normalizes Unicode to NFC, and ensures UTF-8 output.
-3. **Flexible**  
-   - Allows skipping files above a certain size (`max_file_size`) or hidden files (optional).
-4. **Local & Private**  
-   - No network calls. All extraction happens entirely on your machine.
+3. **Flexible** Allows skipping files above a certain size (`max_file_size`) or hidden files (optional).
+4. **Local & Private**  No network calls. All extraction happens entirely on your machine.
 
 ## Requirements
 
