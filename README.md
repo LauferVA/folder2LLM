@@ -7,8 +7,9 @@ This script extracts text from a wide variety of file types—DOCX, PDF, Excel, 
 
 ## Features
 
-1. **Multiple File Types**  
-   - Supports `.docx`, `.pdf`, `.xlsx`, `.odt`, `.ipynb`, and numerous plaintext/code formats.
+1. **Text Extraction** From Several File Types  
+   - Supports extraction of text from a variety of plain text files ( ".txt", ".md", ".py", ".json", ".csv", ".tsv", ".log", ".xml", ".yaml", ".yml", ".html", ".htm", ".css", ".js", ".jsx", ".ts", ".tsx", ".sh", ".cmd", ".ps1", ".swift", ".kt", ".go", ".rs", ".lua", ".pl", ".r", ".m", ".vb", ".cs", ".asm", ".dart", ".php", ".rb", ".sql" )
+2. **Text Conversion** From Many more File Types: 
 2. **Sanitization**  
    - Removes odd or non-printable characters, normalizes Unicode to NFC, and ensures UTF-8 output.
 3. **Flexible**  
