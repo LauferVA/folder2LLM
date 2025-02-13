@@ -4,35 +4,25 @@
 convert_files_to_txt.py
 
 A standalone script that converts various file formats
-(.docx, .pdf, .xlsx, .odt, .ipynb, etc.) to plain-text .txt files.
+(.docx, .pdf, .xlsx, .odt, .ipynb, etc.) to plain-text .txt files,
+optionally zipping them into one archive at the end.
 
 Usage:
-    python convert_files_to_txt.py /path/to/source /path/to/destination
+    python convert_files_to_txt.py <input_dir> <output_dir> [--zip <archive_name>]
 
-Dependencies:
-    - python-docx (for .docx)
-    - PyMuPDF (fitz) or PyPDF2 (for .pdf)
-    - openpyxl (for .xlsx)
-    - odfpy (for .odt)
-    - etc.
-
-This script will:
-    1) Walk the specified input directory recursively,
-    2) Attempt to extract text from recognized file types,
-    3) Write that text to a .txt file in the output directory with the same
-       relative path and base filename (plus a .txt extension).
-    
-    e.g., mydoc.pdf -> mydoc.txt
+Example:
+    python convert_files_to_txt.py docs/ txt_output/ --zip my_converted_files.zip
 """
 
 import os
 import sys
 import logging
 import json
+import unicodedata
+import argparse
+import zipfile
 
-# ----------------------------------------------------------------------
-# Optional imports for specialized parsing:
-# ----------------------------------------------------------------------
+# Optional parsing libraries
 try:
     import docx  # For .docx
 except ImportError:
@@ -58,9 +48,6 @@ try:
 except ImportError:
     odf = None
 
-# ----------------------------------------------------------------------
-# Basic logging setup
-# ----------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -68,9 +55,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ----------------------------------------------------------------------
-# File-parsing routines
-# ----------------------------------------------------------------------
+
+def sanitize_text(text):
+    """
+    Remove or replace odd/control characters and ensure UTF-8 friendly content.
+    - Normalize unicode to NFC form.
+    - Remove non-printable control characters except for newlines/tabs.
+    """
+    text = unicodedata.normalize("NFC", text)
+    cleaned_chars = []
+    for ch in text:
+        if ch.isprintable() or ch in ['\n', '\r', '\t']:
+            cleaned_chars.append(ch)
+        else:
+            cleaned_chars.append(" ")
+    sanitized = "".join(cleaned_chars).strip()
+    return sanitized
+
+
 def extract_text_from_file(filepath):
     """
     Attempt to extract text from the given filepath, based on extension.
@@ -78,7 +80,6 @@ def extract_text_from_file(filepath):
     """
     ext = os.path.splitext(filepath)[1].lower()
 
-    # Common plaintext or code-like
     if ext in (
         ".txt", ".md", ".py", ".json", ".csv", ".tsv", ".log", ".xml",
         ".yaml", ".yml", ".html", ".htm", ".css", ".js", ".jsx", ".ts",
@@ -88,16 +89,13 @@ def extract_text_from_file(filepath):
     ):
         return _read_plaintext(filepath)
 
-    # DOCX
     if ext == ".docx":
         return _read_docx(filepath) if docx else ""
 
-    # .doc or .rtf not fully supported natively
     if ext in (".doc", ".rtf"):
         logger.warning("Native reading not implemented for %s; consider external tools.", ext)
         return ""
 
-    # PDF
     if ext == ".pdf":
         if fitz:
             return _read_pdf_pymupdf(filepath)
@@ -107,24 +105,19 @@ def extract_text_from_file(filepath):
             logger.warning("No PDF library installed; cannot parse PDFs.")
             return ""
 
-    # ODT
     if ext == ".odt":
         return _read_odt(filepath) if odf else ""
 
-    # Excel
     if ext in (".xlsx", ".xls", ".xlsm", ".ods"):
         return _read_excel(filepath) if openpyxl else ""
 
-    # PowerPoint-like
     if ext in (".ppt", ".pptx", ".odp"):
-        logger.warning("Parsing for PPT/ODP not implemented in this script.")
+        logger.warning("Parsing for PPT/ODP not implemented.")
         return ""
 
-    # Jupyter notebook
     if ext == ".ipynb":
         return _read_ipynb(filepath)
 
-    # If no rule matched
     return ""
 
 
@@ -210,9 +203,6 @@ def _read_ipynb(filepath):
         return ""
 
 
-# ----------------------------------------------------------------------
-# Main conversion logic
-# ----------------------------------------------------------------------
 def convert_files_to_txt(
     input_dir,
     output_dir,
@@ -220,19 +210,14 @@ def convert_files_to_txt(
     skip_hidden=True
 ):
     """
-    Recursively scan input_dir for files, extract text, and write to .txt in output_dir.
-
-    :param input_dir: Path to folder containing the original files.
-    :param output_dir: Path where converted .txt files will be saved.
-    :param max_file_size: Skip files larger than this (in bytes).
-    :param skip_hidden: If True, skip hidden files/folders (start with '.').
+    Recursively scan input_dir for files, extract & sanitize text,
+    then write them as .txt in output_dir.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
     logger.info("Starting conversion from %s to %s", input_dir, output_dir)
 
-    # Example list of recognized extensions
     allowed_extensions = (
         ".txt", ".md", ".py", ".json", ".csv", ".tsv", ".log", ".xml",
         ".yaml", ".yml", ".html", ".htm", ".css", ".js", ".jsx", ".ts",
@@ -244,12 +229,10 @@ def convert_files_to_txt(
     )
 
     for root, dirs, files in os.walk(input_dir):
-        # Optionally skip hidden directories
         if skip_hidden:
             dirs[:] = [d for d in dirs if not d.startswith(".")]
 
         for file_name in files:
-            # Optionally skip hidden files
             if skip_hidden and file_name.startswith("."):
                 continue
 
@@ -258,7 +241,6 @@ def convert_files_to_txt(
                 continue
 
             full_path = os.path.join(root, file_name)
-
             # Check file size
             try:
                 size = os.path.getsize(full_path)
@@ -269,26 +251,24 @@ def convert_files_to_txt(
                 logger.error("Could not check file size of %s: %s", full_path, e)
                 continue
 
-            # Build the output path
-            # e.g., input_dir/foo/bar.pdf -> output_dir/foo/bar.txt
+            # e.g. my_docs/foo/bar.pdf -> output_dir/foo/bar.txt
             rel_path = os.path.relpath(full_path, input_dir)
-            base_name = os.path.splitext(rel_path)[0]  # drop extension
+            base_name = os.path.splitext(rel_path)[0]  # no extension
             txt_rel_path = f"{base_name}.txt"
             out_path = os.path.join(output_dir, txt_rel_path)
 
-            # Ensure directory structure
             os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
-            # Extract text
-            text = extract_text_from_file(full_path)
-            if not text.strip():
-                logger.debug("No text extracted from %s", full_path)
+            raw_text = extract_text_from_file(full_path)
+            sanitized_text = sanitize_text(raw_text)
+            if not sanitized_text:
+                logger.debug("No text extracted (or only control chars) from %s", full_path)
                 continue
 
-            # Write to .txt
+            # Write to .txt in UTF-8
             try:
                 with open(out_path, "w", encoding="utf-8") as out_f:
-                    out_f.write(text)
+                    out_f.write(sanitized_text)
                 logger.info("Wrote text to %s", out_path)
             except Exception as e:
                 logger.error("Error writing to %s: %s", out_path, e)
@@ -296,14 +276,50 @@ def convert_files_to_txt(
     logger.info("Conversion complete.")
 
 
-def main():
-    if len(sys.argv) < 3:
-        print("Usage: python convert_files_to_txt.py <input_dir> <output_dir>")
-        sys.exit(1)
+def zip_output_dir(output_dir, zip_name="converted_files.zip"):
+    """
+    Zip the entire output directory of .txt files into a single archive.
+    """
+    zip_path = os.path.join(os.path.dirname(output_dir), zip_name)
+    logger.info("Zipping all text files in %s -> %s", output_dir, zip_path)
 
-    input_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    convert_files_to_txt(input_dir, output_dir)
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for root, dirs, files in os.walk(output_dir):
+            for file_name in files:
+                if file_name.endswith(".txt"):
+                    full_path = os.path.join(root, file_name)
+                    rel_path = os.path.relpath(full_path, output_dir)
+                    zf.write(full_path, arcname=rel_path)
+
+    logger.info("Created zip archive at %s", zip_path)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Convert various filetypes to .txt")
+    parser.add_argument("input_dir", help="Directory with original documents")
+    parser.add_argument("output_dir", help="Directory to store .txt files")
+    parser.add_argument("--zip", nargs="?", const="converted_files.zip", default=None,
+                        help="If set, zip the output directory after conversion. Optionally specify a ZIP filename.")
+    parser.add_argument("--max-file-size", type=int, default=5 * 1024 * 1024,
+                        help="Skip files larger than this (in bytes). Default is 5MB.")
+    parser.add_argument("--include-hidden", action="store_true",
+                        help="If set, process hidden files & directories.")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    convert_files_to_txt(
+        input_dir=args.input_dir,
+        output_dir=args.output_dir,
+        max_file_size=args.max_file_size,
+        skip_hidden=not args.include_hidden
+    )
+
+    # If requested, zip the resulting .txt files
+    if args.zip:
+        zip_output_dir(args.output_dir, args.zip)
 
 
 if __name__ == "__main__":
