@@ -38,7 +38,7 @@ pip install python-docx PyMuPDF PyPDF2 openpyxl odfpy
 2. **Install** any required libraries as desired (see [Requirements](#requirements)).
 3. **Run** the script with:
    ```bash
-   python convert_files_to_txt.py /path/to/source /path/to/destination
+   python files_2_zip.py /path/to/source /path/to/destination
    ```
 
 This will recursively scan `/path/to/source` for supported file types, extract text (if possible), sanitize it, and write `.txt` files into `/path/to/destination`, preserving subdirectory structure.
@@ -61,7 +61,7 @@ my_docs/
 ```
 Run:
 ```bash
-python convert_files_to_txt.py my_docs converted_txt
+python files_2_zip.py my_docs converted_txt
 ```
 Result:
 ```
