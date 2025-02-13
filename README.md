@@ -77,5 +77,7 @@ Inside the script, the `sanitize_text` function removes non-printable control ch
 
 ## License
 
-This script is distributed under MIT. Feel free to modify and incorporate it into your own projects as needed. contact: laufer@openchromatin.com
+This script is distributed under MIT. Note: due to the large number of file types supported, exhaustive testing was not undertaken - this is the reason for MIT licensing - use at your own risk! 
+
+If you have improvements to one or more file types, please submit a PR or contact: laufer@openchromatin.com
 
